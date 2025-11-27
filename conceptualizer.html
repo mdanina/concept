@@ -38,7 +38,7 @@
 
 <div class="autosave-indicator" id="autosaveIndicator">✓ Сохранено автоматически</div>
 
-<div style="max-width: 1050px; margin:40px auto; font-family:'Inter',Arial,sans-serif; color:#252525;">
+<div style="max-width: 1200px; margin:40px auto; font-family:'Inter',Arial,sans-serif; color:#252525;">
   <h2 style="font-size:2rem; font-weight:600; letter-spacing:1px; margin-bottom:10px; color:#4B3AFF;">
    Концептуализатор ХХХ: для тех, кто любит боль
   </h2>
@@ -101,12 +101,14 @@
     </form>
 
     <div style="padding:28px 20px 12px 20px;">
-      <canvas id="conceptCanvas" width="1200" height="700" style="border-radius:18px; border:none; background:linear-gradient(110deg,#f6f8ff 60%,#f8faff 100%); box-shadow:0 3px 24px #4b3aff17, 0 1.5px 10px #0001; cursor:grab;"></canvas>
+      <canvas id="conceptCanvas" width="1160" height="700" style="width:100%; max-width:100%; border-radius:18px; border:none; background:linear-gradient(110deg,#f6f8ff 60%,#f8faff 100%); box-shadow:0 3px 24px #4b3aff17, 0 1.5px 10px #0001; cursor:grab; display:block;"></canvas>
       <div style="font-size:13.5px; color:#7b7a97; margin-top:8px; margin-bottom:6px;">
-        Колесо мыши — <b>зум</b> (относительно курсора). <br>
-        <b>Панорамирование:</b> зажми <b>пробел</b> и тяни мышью <u>или</u> правую кнопку мыши. <br>
-        Круг — базовый процесс, квадрат — часть, шестиугольник — интегративный процесс. <br>
-        Двойной клик по узлу — редактирование. Левый drag — переместить узел.
+        <b>Навигация:</b> <br>
+        • <b>Зум:</b> колесо мыши (относительно курсора) <br>
+        • <b>Панорамирование:</b> перетащите пустое место ЛКМ <u>или</u> зажмите <b>Пробел + ЛКМ</b> <u>или</u> средняя кнопка мыши <u>или</u> ПКМ <br>
+        • <b>Перемещение узла:</b> перетащите узел ЛКМ <br>
+        • <b>Редактирование:</b> двойной клик по узлу <br>
+        <span style="color:#a6a5b7;">Круг — базовый процесс, квадрат — часть, шестиугольник — интегративный процесс</span>
       </div>
     </div>
 
@@ -156,7 +158,8 @@ let offsetX = 0, offsetY = 0;
 
 // drag state for nodes/pan
 let draggingNode = null, dragNodeOffset = {x:0,y:0}, isPanning=false, panStart={x:0,y:0}, panOrigin={x:0,y:0};
-let spacePressed = false;
+let spacePressed = false, middleMouseDown = false;
+const PAN_THRESHOLD = 3; // Минимальное расстояние движения для начала панорамирования (в пикселях)
 
 // ---- Автосохранение в localStorage ----
 function autoSave() {
@@ -430,94 +433,224 @@ document.getElementById('nodeType').onchange=function(){
 
   // Track: is left mouse down, is right mouse down
   let leftDown = false, rightDown = false;
+  let mouseDownOnEmptySpace = false;
+  let initialMousePos = {x:0, y:0};
 
   canvas.onmousedown=function(e){
     let r=canvas.getBoundingClientRect(),
-        x=(e.clientX-r.left)/zoom-offsetX,
-        y=(e.clientY-r.top)/zoom-offsetY;
+        canvasX = e.clientX - r.left,
+        canvasY = e.clientY - r.top,
+        worldX = (canvasX / zoom) - offsetX,
+        worldY = (canvasY / zoom) - offsetY;
 
-    // Панорамирование, если зажат пробел или ПКМ
-    if(spacePressed || e.button===2) {
-      isPanning=true;
-      panStart={x:e.clientX, y:e.clientY};
-      panOrigin={x:offsetX, y:offsetY};
-      canvas.style.cursor="grabbing";
-      if(e.button===2) rightDown=true;
+    // Средняя кнопка мыши (колесо) - всегда панорамирование
+    if(e.button === 1) {
+      e.preventDefault();
+      middleMouseDown = true;
+      isPanning = true;
+      panStart = {x: e.clientX, y: e.clientY};
+      panOrigin = {x: offsetX, y: offsetY};
+      canvas.style.cursor = "grabbing";
       return false;
     }
 
-    // Если нет — обычный drag узла
-    for(let i=nodes.length-1;i>=0;i--){
-      let n=nodes[i],d=Math.hypot(x-n.x,y-n.y);
-      if(d<=30/zoom){draggingNode=n; dragNodeOffset={x:n.x-x,y:n.y-y}; leftDown=true; break;}
+    // Панорамирование, если зажат пробел + ЛКМ
+    if(spacePressed && e.button === 0) {
+      e.preventDefault();
+      isPanning = true;
+      panStart = {x: e.clientX, y: e.clientY};
+      panOrigin = {x: offsetX, y: offsetY};
+      canvas.style.cursor = "grabbing";
+      leftDown = true;
+      return false;
+    }
+
+    // ПКМ - панорамирование
+    if(e.button === 2) {
+      e.preventDefault();
+      isPanning = true;
+      panStart = {x: e.clientX, y: e.clientY};
+      panOrigin = {x: offsetX, y: offsetY};
+      canvas.style.cursor = "grabbing";
+      rightDown = true;
+      return false;
+    }
+
+    // ЛКМ - либо drag узла, либо панорамирование на пустом месте
+    if(e.button === 0) {
+      // Проверяем, есть ли узел под курсором
+      let nodeFound = null;
+      for(let i = nodes.length - 1; i >= 0; i--){
+        let n = nodes[i];
+        let d = Math.hypot(worldX - n.x, worldY - n.y);
+        if(d <= 30/zoom){
+          nodeFound = n;
+          draggingNode = n;
+          dragNodeOffset = {x: n.x - worldX, y: n.y - worldY};
+          leftDown = true;
+          canvas.style.cursor = "move";
+          break;
+        }
+      }
+
+      // Если узел не найден - начинаем панорамирование на пустом месте
+      if(!nodeFound) {
+        mouseDownOnEmptySpace = true;
+        initialMousePos = {x: worldX, y: worldY};
+        panStart = {x: e.clientX, y: e.clientY};
+        panOrigin = {x: offsetX, y: offsetY};
+        canvas.style.cursor = "grab";
+        leftDown = true;
+      }
     }
   };
+
   canvas.onmousemove=function(e){
     let r=canvas.getBoundingClientRect(),
-        x=(e.clientX-r.left)/zoom-offsetX,
-        y=(e.clientY-r.top)/zoom-offsetY;
+        canvasX = e.clientX - r.left,
+        canvasY = e.clientY - r.top,
+        worldX = (canvasX / zoom) - offsetX,
+        worldY = (canvasY / zoom) - offsetY;
 
-    // Панорамирование
-    if(isPanning){
-      offsetX = panOrigin.x + (e.clientX - panStart.x)/zoom;
-      offsetY = panOrigin.y + (e.clientY - panStart.y)/zoom;
-      redraw();
+    // Панорамирование (любой режим)
+    if(isPanning || (mouseDownOnEmptySpace && leftDown && !draggingNode)){
+      // Проверяем, достаточно ли двигаемся для начала панорамирования
+      let moveDistance = Math.hypot(e.clientX - panStart.x, e.clientY - panStart.y);
+      if(!isPanning && moveDistance > PAN_THRESHOLD) {
+        isPanning = true;
+        canvas.style.cursor = "grabbing";
+      }
+      if(isPanning) {
+        offsetX = panOrigin.x + (e.clientX - panStart.x) / zoom;
+        offsetY = panOrigin.y + (e.clientY - panStart.y) / zoom;
+        redraw();
+      }
       return;
     }
+
     // Drag узла
-    if(draggingNode && leftDown){
-      draggingNode.x = x + dragNodeOffset.x;
-      draggingNode.y = y + dragNodeOffset.y;
+    if(draggingNode && leftDown && !isPanning){
+      draggingNode.x = worldX + dragNodeOffset.x;
+      draggingNode.y = worldY + dragNodeOffset.y;
       redraw();
     }
   };
+
   canvas.onmouseup=canvas.onmouseleave=function(e){
-    if(draggingNode) {
+    let wasPanning = isPanning;
+    if(draggingNode && !isPanning) {
       autoSave(); // Сохраняем после перемещения узла
     }
-    draggingNode=null; leftDown=false;
-    isPanning=false; rightDown=false; canvas.style.cursor="grab";
+    draggingNode = null;
+    leftDown = false;
+    rightDown = false;
+    middleMouseDown = false;
+    mouseDownOnEmptySpace = false;
+    isPanning = false;
+    
+    // Сохраняем после панорамирования
+    if(wasPanning) {
+      autoSave();
+    }
+    
+    // Восстанавливаем курсор
+    if(!spacePressed) {
+      canvas.style.cursor = "grab";
+    }
   };
+
   // Двойной клик — редактирование
   canvas.ondblclick=function(e){
-    let r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)/zoom-offsetX,y=(e.clientY-r.top)/zoom-offsetY;
+    if(isPanning) return; // Не редактируем, если только что панорамировали
+    let r=canvas.getBoundingClientRect(),
+        canvasX = e.clientX - r.left,
+        canvasY = e.clientY - r.top,
+        worldX = (canvasX / zoom) - offsetX,
+        worldY = (canvasY / zoom) - offsetY;
     for(let i=nodes.length-1;i>=0;i--){
-      let n=nodes[i],d=Math.hypot(x-n.x,y-n.y);if(d<=30/zoom){editNode(i);break;}
+      let n=nodes[i],d=Math.hypot(worldX-n.x,worldY-n.y);
+      if(d<=30/zoom){editNode(i);break;}
     }
-  }
-  // Отключить контекстное меню ПКМ
+  };
+
+  // Отключить контекстное меню ПКМ и скролл при зажатом колесе
   canvas.oncontextmenu=function(){return false;}
+  
+  // Предотвращаем прокрутку при зажатой средней кнопке
+  canvas.addEventListener('mousedown', function(e) {
+    if(e.button === 1) {
+      e.preventDefault();
+    }
+  });
+  
+  canvas.addEventListener('wheel', function(e) {
+    if(middleMouseDown) {
+      e.preventDefault();
+    }
+  }, {passive: false});
 }
 
 // ---- PAN: отслеживание пробела ----
 window.addEventListener('keydown',e=>{
-  if(e.code==="Space"){spacePressed=true;document.getElementById('conceptCanvas').style.cursor="grabbing";}
+  if(e.code==="Space" && !spacePressed){
+    e.preventDefault(); // Предотвращаем прокрутку страницы
+    spacePressed=true;
+    const canvas = document.getElementById('conceptCanvas');
+    if(!isPanning && !draggingNode) {
+      canvas.style.cursor="grab";
+    }
+  }
 });
 window.addEventListener('keyup',e=>{
-  if(e.code==="Space"){spacePressed=false;document.getElementById('conceptCanvas').style.cursor="grab";}
+  if(e.code==="Space"){
+    e.preventDefault();
+    spacePressed=false;
+    const canvas = document.getElementById('conceptCanvas');
+    if(!isPanning && !draggingNode) {
+      canvas.style.cursor="grab";
+    }
+  }
 });
 
 // ---- Зум колесо мыши ----
 document.getElementById('conceptCanvas').addEventListener('wheel', function(e){
   e.preventDefault();
   let canvas=this, rect=canvas.getBoundingClientRect();
-  let mouseX=(e.clientX-rect.left)/zoom-offsetX, mouseY=(e.clientY-rect.top)/zoom-offsetY;
+  let canvasX = e.clientX - rect.left;
+  let canvasY = e.clientY - rect.top;
+  let worldX = (canvasX / zoom) - offsetX;
+  let worldY = (canvasY / zoom) - offsetY;
   let prevZoom=zoom;
   if(e.deltaY<0) zoom=Math.min(zoom*1.09,zoomMax);
   else zoom=Math.max(zoom/1.09,zoomMin);
-  // чтобы зум был относительно курсора
-  offsetX -= (mouseX)*(zoom-prevZoom)/zoom;
-  offsetY -= (mouseY)*(zoom-prevZoom)/zoom;
+  // чтобы зум был относительно курсора (точка под курсором остается на месте)
+  offsetX = (canvasX / zoom) - worldX;
+  offsetY = (canvasY / zoom) - worldY;
   redraw();
   autoSave();
 }, {passive:false});
 
 // ---- Подсказка по наведению ----
 document.getElementById('conceptCanvas').addEventListener('mousemove',function(e){
-  let r=this.getBoundingClientRect(),x=(e.clientX-r.left)/zoom-offsetX,y=(e.clientY-r.top)/zoom-offsetY,found=null;
-  nodes.forEach(n=>{if(Math.hypot(x-n.x,y-n.y)<30/zoom)found=n;});
-  if(found) this.title = found.name+" ("+found.type+(found.category?": "+found.category:"")+")\n"+(found.desc||"");
-  else this.title="";
+  // Не показываем подсказку во время панорамирования или перетаскивания
+  if(isPanning || draggingNode || leftDown || spacePressed) {
+    this.title = "";
+    return;
+  }
+  let r=this.getBoundingClientRect(),
+      canvasX = e.clientX - r.left,
+      canvasY = e.clientY - r.top,
+      worldX = (canvasX / zoom) - offsetX,
+      worldY = (canvasY / zoom) - offsetY,
+      found=null;
+  nodes.forEach(n=>{if(Math.hypot(worldX-n.x,worldY-n.y)<30/zoom)found=n;});
+  if(found) {
+    this.title = found.name+" ("+found.type+(found.category?": "+found.category:"")+")\n"+(found.desc||"");
+    if(this.style.cursor !== "move") this.style.cursor = "pointer";
+  } else {
+    this.title = "";
+    if(this.style.cursor !== "grabbing" && !isPanning) this.style.cursor = "grab";
+  }
 });
 
 // ---- Экспорт/импорт ----
