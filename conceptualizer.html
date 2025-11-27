@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Концептуализатор ХХХ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      background: #f0f2f8;
+    }
+    .autosave-indicator {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      background: #4B3AFF;
+      color: white;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1000;
+      box-shadow: 0 2px 12px rgba(75, 58, 255, 0.3);
+    }
+    .autosave-indicator.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<div class="autosave-indicator" id="autosaveIndicator">✓ Сохранено автоматически</div>
+
+<div style="max-width: 1050px; margin:40px auto; font-family:'Inter',Arial,sans-serif; color:#252525;">
+  <h2 style="font-size:2rem; font-weight:600; letter-spacing:1px; margin-bottom:10px; color:#4B3AFF;">
+   Концептуализатор ХХХ: для тех, кто любит боль
+  </h2>
+  <div style="background:#fff; border-radius:18px; box-shadow:0 2px 16px #4b3aff0d, 0 1.5px 10px #8881;">
+    <form id="addNodeForm" style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; padding:22px 24px 0 24px;">
+      <div>
+        <label style="font-weight:500; font-size:1rem;">Тип:</label>
+        <select id="nodeType" style="padding:6px 10px; border-radius:8px; border:1px solid #c7c7d7;">
+          <option value="base">Базовый процесс</option>
+          <option value="part">Часть / субличность</option>
+          <option value="integrative">Интегративный процесс</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-weight:500; font-size:1rem;">Название:</label>
+        <input type="text" id="nodeName" placeholder="Название" style="width:150px; padding:7px 10px; border-radius:8px; border:1px solid #c7c7d7;">
+      </div>
+      <div>
+        <label style="font-weight:500; font-size:1rem;">Описание:</label>
+        <input type="text" id="nodeDesc" placeholder="Описание" style="width:160px; padding:7px 10px; border-radius:8px; border:1px solid #c7c7d7;">
+      </div>
+      <div id="baseFields">
+        <label style="font-weight:500; font-size:1rem;">Категория:</label>
+        <select id="nodeCategory" style="padding:6px 10px; border-radius:8px; border:1px solid #c7c7d7;">
+          <option value="">-</option>
+          <option value="attention">Внимание</option>
+          <option value="cognitive">Когниция</option>
+          <option value="affective">Эмоции</option>
+          <option value="selfing">Селфинг</option>
+          <option value="behavioral">Поведение</option>
+          <option value="motivational">Мотивация</option>
+          <option value="biophysiological">Биофизиология</option>
+          <option value="situational">Ситуация</option>
+          <option value="personal_history">История</option>
+          <option value="socio_cultural">Социум</option>
+          <option value="therapeutic">Терапия</option>
+        </select>
+      </div>
+      <div>
+        <button type="button" id="addNodeBtn" style="background:#4B3AFF; color:#fff; border:none; border-radius:9px; padding:8px 24px; font-size:1.03rem; font-weight:600; box-shadow:0 1px 7px #4b3aff22; cursor:pointer; transition:background 0.18s;">
+          + Добавить
+        </button>
+      </div>
+    </form>
+
+    <form id="addConnForm" style="display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end; padding:18px 24px 0 24px;">
+      <label style="font-size:1.05rem;">Связь: </label>
+      <select id="connFrom" style="padding:6px 10px; border-radius:7px; border:1px solid #c7c7d7;"></select> →
+      <select id="connTo" style="padding:6px 10px; border-radius:7px; border:1px solid #c7c7d7;"></select>
+      <select id="connType" style="padding:6px 10px; border-radius:7px; border:1px solid #c7c7d7;">
+        <option value="activates">Активирует</option>
+        <option value="inhibits">Подавляет</option>
+        <option value="supports">Поддерживает</option>
+        <option value="contradicts">Противоречит</option>
+      </select>
+      <input type="number" min="1" max="5" value="3" id="connStrength" style="width:44px; padding:6px 4px; border-radius:8px; border:1px solid #c7c7d7;">
+      <button type="button" id="addConnBtn" style="background:#7f60ff; color:#fff; border:none; border-radius:8px; padding:7px 20px; font-size:1rem; font-weight:500; box-shadow:0 1px 7px #4b3aff16; cursor:pointer; transition:background 0.18s;">
+        ➔ Добавить связь
+      </button>
+    </form>
+
+    <div style="padding:28px 20px 12px 20px;">
+      <canvas id="conceptCanvas" width="1200" height="700" style="border-radius:18px; border:none; background:linear-gradient(110deg,#f6f8ff 60%,#f8faff 100%); box-shadow:0 3px 24px #4b3aff17, 0 1.5px 10px #0001; cursor:grab;"></canvas>
+      <div style="font-size:13.5px; color:#7b7a97; margin-top:8px; margin-bottom:6px;">
+        Колесо мыши — <b>зум</b> (относительно курсора). <br>
+        <b>Панорамирование:</b> зажми <b>пробел</b> и тяни мышью <u>или</u> правую кнопку мыши. <br>
+        Круг — базовый процесс, квадрат — часть, шестиугольник — интегративный процесс. <br>
+        Двойной клик по узлу — редактирование. Левый drag — переместить узел.
+      </div>
+    </div>
+
+    <div style="display:flex; gap:32px; padding:10px 24px 10px 24px;">
+      <div style="flex:1;">
+        <b style="font-size:1.11rem;">Узлы</b>
+        <div id="nodesList" style="margin-top:5px;"></div>
+      </div>
+      <div style="flex:1;">
+        <b style="font-size:1.11rem;">Связи</b>
+        <div id="connList" style="margin-top:5px;"></div>
+      </div>
+    </div>
+
+    <div style="padding:0 24px 20px 24px; margin-bottom:8px;">
+      <button id="saveFileBtn" style="margin-right:10px; background:#4B3AFF; color:#fff; border:none; border-radius:8px; padding:8px 17px; font-size:0.98rem; font-weight:600; box-shadow:0 1px 7px #4b3aff33; cursor:pointer; transition:background 0.18s;">
+        💾 Сохранить файл
+      </button>
+      <button id="exportBtn" style="margin-right:10px; background:#F7F6FF; color:#4B3AFF; border:none; border-radius:8px; padding:8px 17px; font-size:0.98rem; font-weight:600; box-shadow:0 1px 7px #4b3aff13; cursor:pointer; transition:background 0.18s;">
+        ⬇ Показать JSON
+      </button>
+      <button id="importBtn" style="margin-right:10px; background:#F7F6FF; color:#4B3AFF; border:none; border-radius:8px; padding:8px 17px; font-size:0.98rem; font-weight:600; box-shadow:0 1px 7px #4b3aff13; cursor:pointer;">
+        ⬆ Загрузить файл
+      </button>
+      <input type="file" id="importFile" accept=".json" style="display:none;">
+      <button id="clearBtn" style="margin-right:10px; background:#fff6f8; color:#de2a51; border:none; border-radius:8px; padding:8px 16px; font-size:0.98rem; font-weight:600; box-shadow:0 1px 7px #de2a5113; cursor:pointer;">
+        Очистить всё
+      </button>
+    </div>
+    <div id="exportArea" style="display:none;margin:8px 24px 20px 24px;">
+      <textarea id="jsonExport" style="width:100%;height:110px; border-radius:12px; border:1px solid #e2e1ee; padding:9px; font-size:1rem; background:#f5f6fa;"></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+let nodes = [];
+let connections = [];
+const colors = {
+  attention:"#4dabf7", cognitive:"#ff6b6b", affective:"#ffd43b", selfing:"#a9e34b",
+  behavioral:"#ff922b", motivational:"#7950f2", biophysiological:"#99e9f2", situational:"#c0eb75",
+  personal_history:"#c2255c", socio_cultural:"#f783ac", therapeutic:"#b197fc",
+  part:"#FFB347", integrative:"#6B8E23"
+};
+let zoom = 1.0, zoomMin=0.3, zoomMax=3;
+let offsetX = 0, offsetY = 0;
+
+// drag state for nodes/pan
+let draggingNode = null, dragNodeOffset = {x:0,y:0}, isPanning=false, panStart={x:0,y:0}, panOrigin={x:0,y:0};
+let spacePressed = false;
+
+// ---- Автосохранение в localStorage ----
+function autoSave() {
+  try {
+    const data = {
+      nodes,
+      connections,
+      zoom,
+      offsetX,
+      offsetY,
+      timestamp: new Date().toISOString()
+    };
+    localStorage.setItem('conceptualizer_autosave', JSON.stringify(data));
+    showAutosaveIndicator();
+  } catch(e) {
+    console.error('Ошибка автосохранения:', e);
+  }
+}
+
+function showAutosaveIndicator() {
+  const indicator = document.getElementById('autosaveIndicator');
+  indicator.classList.add('show');
+  setTimeout(() => {
+    indicator.classList.remove('show');
+  }, 2000);
+}
+
+function loadAutosave() {
+  try {
+    const saved = localStorage.getItem('conceptualizer_autosave');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.nodes && Array.isArray(data.nodes)) {
+        nodes = data.nodes;
+        connections = data.connections || [];
+        zoom = data.zoom || 1.0;
+        offsetX = data.offsetX || 0;
+        offsetY = data.offsetY || 0;
+        return true;
+      }
+    }
+  } catch(e) {
+    console.error('Ошибка загрузки автосохранения:', e);
+  }
+  return false;
+}
+
+function redraw() {
+  const canvas = document.getElementById('conceptCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  function tx(x) { return (x + offsetX) * zoom; }
+  function ty(y) { return (y + offsetY) * zoom; }
+
+  // Grid for orientation
+  ctx.save();
+  ctx.strokeStyle = "#ebedfa";
+  ctx.lineWidth = 1;
+  let gridStep = 100*zoom;
+  let max = 5000;
+  for(let x=-max;x<canvas.width+max;x+=gridStep){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+  for(let y=-max;y<canvas.height+max;y+=gridStep){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Draw connections
+  connections.forEach((conn, idx)=>{
+    let a = nodes[conn.from], b = nodes[conn.to];
+    if (!a||!b) return;
+    ctx.save();
+    ctx.strokeStyle = ({activates:"#51cf66",inhibits:"#fa5252",supports:"#228be6",contradicts:"#fd7e14"})[conn.type]||"#adb5bd";
+    ctx.globalAlpha = 0.89;
+    ctx.lineWidth = (conn.strength+1)*zoom;
+
+    let endR = 28;
+    if(b.type==="part") endR=33;
+    if(b.type==="integrative") endR=36;
+    endR *= zoom;
+
+    let dx = tx(b.x)-tx(a.x), dy = ty(b.y)-ty(a.y), L = Math.sqrt(dx*dx+dy*dy);
+    if (L < 10) return;
+
+    let ratio = 1-endR/L;
+    let sx = tx(a.x) + dx*ratio, sy = ty(a.y) + dy*ratio;
+
+    ctx.beginPath();
+    ctx.moveTo(tx(a.x), ty(a.y));
+    ctx.lineTo(sx, sy);
+    ctx.stroke();
+
+    let angle = Math.atan2(dy, dx);
+    let arrowLen = 22*zoom, arrowWidth = 11*zoom;
+    let ax = sx, ay = sy;
+
+    ctx.beginPath();
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(
+      ax - arrowLen*Math.cos(angle-Math.PI/9),
+      ay - arrowLen*Math.sin(angle-Math.PI/9)
+    );
+    ctx.lineTo(
+      ax - arrowLen*Math.cos(angle+Math.PI/9),
+      ay - arrowLen*Math.sin(angle+Math.PI/9)
+    );
+    ctx.closePath();
+    ctx.shadowColor = "#b1aaff";
+    ctx.shadowBlur = 7*zoom;
+    ctx.fillStyle = ctx.strokeStyle;
+    ctx.globalAlpha = 0.98;
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Draw nodes
+  nodes.forEach((n,i)=>{
+    ctx.save(); ctx.translate(tx(n.x),ty(n.y));
+    let r = 25*zoom;
+    if(n.type==="base"){ ctx.beginPath();ctx.arc(0,0,r,0,2*Math.PI);
+      ctx.shadowColor="#bed7ff";ctx.shadowBlur=10*zoom;
+      ctx.fillStyle=colors[n.category]||"#dee2e6";ctx.fill();ctx.shadowBlur=0;
+      ctx.strokeStyle="#4B3AFF";ctx.lineWidth=2.5*zoom;ctx.stroke();}
+    else if(n.type==="part"){ctx.beginPath();ctx.rect(-23*zoom,-23*zoom,46*zoom,46*zoom);
+      ctx.shadowColor="#ffeedb";ctx.shadowBlur=10*zoom;
+      ctx.fillStyle=colors.part;ctx.fill();ctx.shadowBlur=0;
+      ctx.strokeStyle="#FF8600";ctx.lineWidth=2.2*zoom;ctx.stroke();}
+    else if(n.type==="integrative"){ctx.beginPath();
+      for(let k=0;k<6;k++){let a=Math.PI/3*k-Math.PI/6;let x=r*Math.cos(a),y=r*Math.sin(a);
+        if(k===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.closePath();
+      ctx.shadowColor="#e4fad6";ctx.shadowBlur=11*zoom;
+      ctx.fillStyle=colors.integrative;ctx.fill();ctx.shadowBlur=0;
+      ctx.strokeStyle="#36b34a";ctx.lineWidth=2.1*zoom;ctx.stroke();}
+    ctx.font=`bold ${Math.round(15*zoom)}px 'Inter',Arial`;ctx.textAlign="center";ctx.fillStyle="#222";
+    ctx.fillText((i+1),0,6*zoom);
+    ctx.font=`${Math.round(13*zoom)}px 'Inter',Arial`;ctx.fillStyle="#6e6e7e";
+    ctx.fillText(n.name.substring(0,18),0,38*zoom);
+    ctx.restore();
+  });
+}
+
+function updateLists(){
+  let nlist = document.getElementById('nodesList');
+  let clist = document.getElementById('connList');
+  nlist.innerHTML = nodes.map((n,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px; background:#f9f8fe; border-radius:8px; margin:2px 0 5px 0; padding:7px 10px 6px 12px; box-shadow:0 2px 12px #ede9fc11;">
+      <div>
+        <b style="color:#4B3AFF">${i+1}.</b>
+        <span style="font-weight:600; color:#222;">${n.name}</span>
+        <span style="color:#8c8c9c; font-size:0.93em;">(${n.type=="base"?n.category:n.type})</span>
+        <div style="font-size:11.5px;color:#a6a5b7; margin-left:7px;">${n.desc||""}</div>
+      </div>
+      <div>
+        <span title="Удалить" style="color:#fa5252; font-size:1.15em; cursor:pointer; margin-right:6px;" onclick="deleteNode(${i})">&#10005;</span>
+        <span title="Редактировать" style="color:#37b368; font-size:1.1em; cursor:pointer;" onclick="editNode(${i})">&#9998;</span>
+      </div>
+    </div>
+  `).join("");
+  clist.innerHTML = connections.map((c,j)=>{
+    let from=nodes[c.from],to=nodes[c.to];
+    return from&&to?`
+      <div style="background:#f4f7ff; border-radius:7px; margin:2px 0; padding:5px 9px 5px 12px; display:flex;align-items:center;justify-content:space-between; box-shadow:0 1px 5px #b2b3f522;">
+        <div>
+          <span style="color:#222;font-weight:500;">${from.name}</span>
+          <span style="color:#7e79a6;">→</span>
+          <span style="color:#222;font-weight:500;">${to.name}</span>
+          <span style="color:#8c8c9c; font-size:0.92em;">[${c.type}, ${c.strength}]</span>
+        </div>
+        <span title="Удалить" style="color:#fa5252; font-size:1.05em; cursor:pointer;" onclick="deleteConn(${j})">&#10005;</span>
+      </div>
+    `:"";
+  }).join("");
+  let s = nodes.map((n,i)=>`<option value="${i}">${i+1}. ${n.name}</option>`).join('');
+  document.getElementById('connFrom').innerHTML=s; document.getElementById('connTo').innerHTML=s;
+
+  // Автосохранение после обновления
+  autoSave();
+}
+
+function addNode() {
+  let type = document.getElementById('nodeType').value;
+  let name = document.getElementById('nodeName').value.trim();
+  let desc = document.getElementById('nodeDesc').value.trim();
+  if(!name) return alert("Введите название");
+  let obj = {name,type,desc,x:80+Math.random()*900,y:80+Math.random()*500};
+  if(type=="base"){ obj.category=document.getElementById('nodeCategory').value;}
+  nodes.push(obj); updateLists(); redraw();
+  document.getElementById('addNodeForm').reset();
+  document.getElementById('baseFields').style.display = "";
+}
+
+function addConn() {
+  let from=+document.getElementById('connFrom').value;
+  let to=+document.getElementById('connTo').value;
+  if(from==to) return alert("Нельзя связывать узел сам с собой");
+  let type=document.getElementById('connType').value;
+  let strength=+document.getElementById('connStrength').value||3;
+  connections.push({from,to,type,strength}); updateLists(); redraw();
+}
+
+function deleteNode(i){
+  if (!confirm("Удалить узел?")) return;
+  nodes.splice(i,1);
+  connections = connections.filter(c=>c.from!==i && c.to!==i)
+    .map(c=>{
+      return { ...c, from:c.from>i?c.from-1:c.from, to:c.to>i?c.to-1:c.to };
+    });
+  updateLists(); redraw();
+}
+
+function deleteConn(j){
+  if (!confirm("Удалить связь?")) return;
+  connections.splice(j,1); updateLists(); redraw();
+}
+window.deleteNode = deleteNode;
+window.deleteConn = deleteConn;
+
+function editNode(idx){
+  let n=nodes[idx];
+  let name = prompt("Название:", n.name);
+  if (name===null) return;
+  n.name = name;
+  let desc = prompt("Описание:", n.desc||"");
+  if (desc!==null) n.desc=desc;
+  redraw(); updateLists();
+}
+window.editNode = editNode;
+
+// ---- Сохранение файла локально ----
+function saveToFile() {
+  const data = {
+    nodes,
+    connections,
+    zoom,
+    offsetX,
+    offsetY,
+    metadata: {
+      version: "1.0",
+      created: new Date().toISOString(),
+      application: "Концептуализатор ХХХ"
+    }
+  };
+
+  const jsonString = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `concept_${new Date().toISOString().slice(0,10)}_${Date.now()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  alert('Файл сохранён!');
+}
+
+document.getElementById('addNodeBtn').onclick=addNode;
+document.getElementById('addConnBtn').onclick=addConn;
+
+document.getElementById('nodeType').onchange=function(){
+  document.getElementById('baseFields').style.display = this.value=="base"?"":"none";
+};
+
+// -- Drag logic for nodes AND panning --
+{
+  let canvas=document.getElementById('conceptCanvas');
+
+  // Track: is left mouse down, is right mouse down
+  let leftDown = false, rightDown = false;
+
+  canvas.onmousedown=function(e){
+    let r=canvas.getBoundingClientRect(),
+        x=(e.clientX-r.left)/zoom-offsetX,
+        y=(e.clientY-r.top)/zoom-offsetY;
+
+    // Панорамирование, если зажат пробел или ПКМ
+    if(spacePressed || e.button===2) {
+      isPanning=true;
+      panStart={x:e.clientX, y:e.clientY};
+      panOrigin={x:offsetX, y:offsetY};
+      canvas.style.cursor="grabbing";
+      if(e.button===2) rightDown=true;
+      return false;
+    }
+
+    // Если нет — обычный drag узла
+    for(let i=nodes.length-1;i>=0;i--){
+      let n=nodes[i],d=Math.hypot(x-n.x,y-n.y);
+      if(d<=30/zoom){draggingNode=n; dragNodeOffset={x:n.x-x,y:n.y-y}; leftDown=true; break;}
+    }
+  };
+  canvas.onmousemove=function(e){
+    let r=canvas.getBoundingClientRect(),
+        x=(e.clientX-r.left)/zoom-offsetX,
+        y=(e.clientY-r.top)/zoom-offsetY;
+
+    // Панорамирование
+    if(isPanning){
+      offsetX = panOrigin.x + (e.clientX - panStart.x)/zoom;
+      offsetY = panOrigin.y + (e.clientY - panStart.y)/zoom;
+      redraw();
+      return;
+    }
+    // Drag узла
+    if(draggingNode && leftDown){
+      draggingNode.x = x + dragNodeOffset.x;
+      draggingNode.y = y + dragNodeOffset.y;
+      redraw();
+    }
+  };
+  canvas.onmouseup=canvas.onmouseleave=function(e){
+    if(draggingNode) {
+      autoSave(); // Сохраняем после перемещения узла
+    }
+    draggingNode=null; leftDown=false;
+    isPanning=false; rightDown=false; canvas.style.cursor="grab";
+  };
+  // Двойной клик — редактирование
+  canvas.ondblclick=function(e){
+    let r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)/zoom-offsetX,y=(e.clientY-r.top)/zoom-offsetY;
+    for(let i=nodes.length-1;i>=0;i--){
+      let n=nodes[i],d=Math.hypot(x-n.x,y-n.y);if(d<=30/zoom){editNode(i);break;}
+    }
+  }
+  // Отключить контекстное меню ПКМ
+  canvas.oncontextmenu=function(){return false;}
+}
+
+// ---- PAN: отслеживание пробела ----
+window.addEventListener('keydown',e=>{
+  if(e.code==="Space"){spacePressed=true;document.getElementById('conceptCanvas').style.cursor="grabbing";}
+});
+window.addEventListener('keyup',e=>{
+  if(e.code==="Space"){spacePressed=false;document.getElementById('conceptCanvas').style.cursor="grab";}
+});
+
+// ---- Зум колесо мыши ----
+document.getElementById('conceptCanvas').addEventListener('wheel', function(e){
+  e.preventDefault();
+  let canvas=this, rect=canvas.getBoundingClientRect();
+  let mouseX=(e.clientX-rect.left)/zoom-offsetX, mouseY=(e.clientY-rect.top)/zoom-offsetY;
+  let prevZoom=zoom;
+  if(e.deltaY<0) zoom=Math.min(zoom*1.09,zoomMax);
+  else zoom=Math.max(zoom/1.09,zoomMin);
+  // чтобы зум был относительно курсора
+  offsetX -= (mouseX)*(zoom-prevZoom)/zoom;
+  offsetY -= (mouseY)*(zoom-prevZoom)/zoom;
+  redraw();
+  autoSave();
+}, {passive:false});
+
+// ---- Подсказка по наведению ----
+document.getElementById('conceptCanvas').addEventListener('mousemove',function(e){
+  let r=this.getBoundingClientRect(),x=(e.clientX-r.left)/zoom-offsetX,y=(e.clientY-r.top)/zoom-offsetY,found=null;
+  nodes.forEach(n=>{if(Math.hypot(x-n.x,y-n.y)<30/zoom)found=n;});
+  if(found) this.title = found.name+" ("+found.type+(found.category?": "+found.category:"")+")\n"+(found.desc||"");
+  else this.title="";
+});
+
+// ---- Экспорт/импорт ----
+document.getElementById('saveFileBtn').onclick = saveToFile;
+
+document.getElementById('exportBtn').onclick=function(){
+  let area = document.getElementById('exportArea');
+  if(area.style.display === "none") {
+    area.style.display="";
+    document.getElementById('jsonExport').value = JSON.stringify({nodes,connections},null,2);
+  } else {
+    area.style.display="none";
+  }
+};
+
+document.getElementById('clearBtn').onclick=function(){
+  if(confirm("Очистить все узлы и связи?")){
+    nodes=[];
+    connections=[];
+    zoom=1.0;
+    offsetX=0;
+    offsetY=0;
+    redraw();
+    updateLists();
+  }
+};
+
+document.getElementById('importBtn').onclick=function(){
+  document.getElementById('importFile').click();
+};
+
+document.getElementById('importFile').onchange=function(e){
+  let f=e.target.files[0];if(!f)return;
+  let reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      let data=JSON.parse(ev.target.result);
+      if(data.nodes&&Array.isArray(data.nodes)){nodes=data.nodes;}
+      if(data.connections&&Array.isArray(data.connections)){connections=data.connections;}
+      if(typeof data.zoom === 'number') zoom = data.zoom;
+      if(typeof data.offsetX === 'number') offsetX = data.offsetX;
+      if(typeof data.offsetY === 'number') offsetY = data.offsetY;
+      redraw();updateLists();
+      alert("Импортировано!");
+    }catch(err){alert("Ошибка при импорте данных!");}
+  };
+  reader.readAsText(f);
+};
+
+// ---- Загрузка при старте ----
+window.addEventListener('DOMContentLoaded', function() {
+  const loaded = loadAutosave();
+
+  if (!loaded) {
+    // Начальный пример только если нет автосохранения
+    nodes = [
+      {name:"Тревога",type:"base",category:"affective",desc:"Интенсивное чувство тревоги",x:250,y:120},
+      {name:"Руминация",type:"integrative",desc:"Навязчивое обдумывание",x:470,y:160},
+      {name:"Уязвимый ребенок",type:"part",desc:"Субличность",x:320,y:260}
+    ];
+    connections = [
+      {from:0,to:1,type:"activates",strength:4},
+      {from:2,to:1,type:"supports",strength:2}
+    ];
+  }
+
+  updateLists();
+  redraw();
+});
+
+</script>
+
+</body>
+</html>
