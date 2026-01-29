@@ -54,7 +54,7 @@
       </div>
       <div>
         <label style="font-weight:500; font-size:1rem;">Название:</label>
-        <input type="text" id="nodeName" placeholder="Название" style="width:150px; padding:7px 10px; border-radius:8px; border:1px solid #c7c7d7;">
+        <input type="text" id="nodeName" placeholder="Название (можно несколько слов)" style="width:260px; padding:7px 10px; border-radius:8px; border:1px solid #c7c7d7;">
       </div>
       <div>
         <label style="font-weight:500; font-size:1rem;">Описание:</label>
@@ -590,9 +590,17 @@ document.getElementById('nodeType').onchange=function(){
   }, {passive: false});
 }
 
-// ---- PAN: отслеживание пробела ----
+// ---- PAN: отслеживание пробела (не перехватывать в полях ввода!) ----
+function isEditableElement(el){
+  if(!el || !el.tagName) return false;
+  const tag = el.tagName.toUpperCase();
+  if(tag==="INPUT" || tag==="TEXTAREA") return true;
+  if(el.isContentEditable) return true;
+  return false;
+}
 window.addEventListener('keydown',e=>{
   if(e.code==="Space" && !spacePressed){
+    if(isEditableElement(e.target)) return; // Пробел в поле "Название"/"Описание" — не перехватывать
     e.preventDefault(); // Предотвращаем прокрутку страницы
     spacePressed=true;
     const canvas = document.getElementById('conceptCanvas');
@@ -603,6 +611,7 @@ window.addEventListener('keydown',e=>{
 });
 window.addEventListener('keyup',e=>{
   if(e.code==="Space"){
+    if(isEditableElement(e.target)) return;
     e.preventDefault();
     spacePressed=false;
     const canvas = document.getElementById('conceptCanvas');
